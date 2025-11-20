@@ -45,7 +45,7 @@ app.post("/auth/signup", async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "User added successfully.", user: savedUser });
+      .json({ message: "User added successfully .", user: savedUser });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Adding user Failed.", error });
@@ -55,6 +55,24 @@ app.post("/auth/signup", async (req, res) => {
 //login
 app.post("/auth/login", async (req, res) => {
   try {
+    const { email, password } = req.body;
+
+    const existingUser = await User.findOne({ email }).select("+password");
+
+    if (!existingUser) {
+      return res.status(400).json({ message: "Invalid email." });
+    }
+
+    const isMatch = await bcrypt.compare(password, existingUser.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Incorrect password." });
+    }
+    const token = jwt.sign({ existingUser }, JWT_SECRET, { expiresIn: "24h" });
+
+    res
+      .status(200)
+      .json({ message: "Login Successful", token, user: existingUser });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "User Login Failed.", error });
@@ -65,3 +83,5 @@ const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
 });
+
+ 
