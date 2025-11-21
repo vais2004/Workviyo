@@ -97,8 +97,30 @@ const verifyJWT = (req, res, next) => {
 };
 
 //get user with token
-app.get("auth/me", verifyJWT, (req, res) => {
+app.get("/auth/me", verifyJWT, (req, res) => {
   return res.status(200).json(req.user);
+});
+
+//get users
+app.get("/users", async (req, res) => {
+  try {
+    const users = await User.find();
+    res.send(users);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Internal server error");
+  }
+});
+
+//get tags
+app.get("/tags", async (req, res) => {
+  try {
+    const tags = await Tag.find();
+    res.send(tags);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Internal server error");
+  }
 });
 
 const port = process.env.PORT;
