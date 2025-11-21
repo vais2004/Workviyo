@@ -79,9 +79,29 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+//verify token
+const verifyJWT = (req, res, next) => {
+  const token = req.headers["authorization"].split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  jwt.verify(token, JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(402).json({ message: "Invalid token" });
+    }
+    req.user = decoded.existingUser;
+    next();
+  });
+};
+
+//get user with token
+app.get("auth/me", verifyJWT, (req, res) => {
+  return res.status(200).json(req.user);
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
 });
-
- 
