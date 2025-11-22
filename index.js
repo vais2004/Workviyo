@@ -236,6 +236,31 @@ app.delete("/tasks/:id", async (req, res) => {
   }
 });
 
+//new team
+app.post("/teams", async (req, res) => {
+  try {
+    const { name } = req.body;
+    const existingTeam = await Team.findOne({ name });
+
+    if (existingTeam) {
+      return res.status(400).json({ message: "Team already exists" });
+    }
+
+    const newTeam = new Team(req.body);
+    await newTeam.save();
+
+    const populatedTeam = await Team.findById(newTeam._id).populate("members");
+
+    res.status(201).json({
+      message: "New team created successfully",
+      team: populatedTeam,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Team creation failed", error });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
