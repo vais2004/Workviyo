@@ -305,15 +305,31 @@ app.post("/projects", async (req, res) => {
     const newProject = new Project(req.body);
     const savedProject = await newProject.save();
 
-    res
-      .status(201)
-      .json({
-        message: "New prohect added successfully",
-        project: savedProject,
-      });
+    res.status(201).json({
+      message: "New prohect added successfully",
+      project: savedProject,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "project creation failed" });
+  }
+});
+
+//get project
+app.get("/projects", async (req, res) => {
+  const { name } = req.query;
+  const filter = {};
+
+  if (name) {
+    filter.name = name;
+  }
+
+  try {
+    const projects = await Project.find(filter);
+    res.send(projects);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Internal server error");
   }
 });
 
