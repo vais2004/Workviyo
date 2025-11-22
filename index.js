@@ -261,6 +261,28 @@ app.post("/teams", async (req, res) => {
   }
 });
 
+//add new team member
+app.post("/team/:team_id/member", async (req, res) => {
+  const { member } = req.body;
+  try {
+    const team = await Team.findById(req.params.team_id);
+    team.members.push(member);
+    await team.save();
+    const populatedTeam = await Team.findById(req.params.team_id).populate(
+      "members"
+    );
+    res
+      .status(201)
+      .json({
+        message: "New team member added successfully",
+        team: populatedTeam,
+      });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "failed to add member" });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
