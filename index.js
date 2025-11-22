@@ -4,7 +4,7 @@ const User = require("./models/model.user");
 const Tag = require("./models/model.tag");
 const Team = require("./models/model.team");
 const Project = require("./models/model.project");
-const { initialiseDatabase } = require("./db/db.connect");
+const { initializeDatabase } = require("./db/db.connect");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -20,7 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-initialiseDatabase();
+initializeDatabase();
 
 const JWT_SECRET = "workviyoProjectManagement&TaskManagementApp";
 
