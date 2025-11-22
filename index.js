@@ -212,7 +212,7 @@ app.get("/tasks", async (req, res) => {
   }
 });
 
-//update task
+//update task by id
 app.post("/tasks/:id", async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
@@ -225,7 +225,16 @@ app.post("/tasks/:id", async (req, res) => {
   }
 });
 
-
+// delete task by id
+app.delete("/tasks/:id", async (req, res) => {
+  try {
+    const deletedTask = await Task.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Task deleted successfully", deletedTask });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to delete task." });
+  }
+});
 
 const port = process.env.PORT;
 app.listen(port, () => {
