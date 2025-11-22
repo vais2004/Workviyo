@@ -292,6 +292,31 @@ app.get("/teams", async (req, res) => {
   }
 });
 
+//new project
+app.post("/projects", async (req, res) => {
+  try {
+    const { name } = req.body;
+    const existingProject = await Project.findOne({ name });
+
+    if (existingProject) {
+      return res.status(400).json({ message: "project already exists" });
+    }
+
+    const newProject = new Project(req.body);
+    const savedProject = await newProject.save();
+
+    res
+      .status(201)
+      .json({
+        message: "New prohect added successfully",
+        project: savedProject,
+      });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "project creation failed" });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
