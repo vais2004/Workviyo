@@ -380,6 +380,68 @@ app.get("report/pending", async (req, res) => {
   }
 });
 
+//closed tasks report
+app.get("/report/closed-tasks", async (req, res) => {
+  try {
+    const groupByProject = await Task.aggregate([
+      {
+        $match: { status: "Completed" },
+      },
+      {
+        $group: {
+          _id: "$project",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const groupByTeam = await Task.aggregate([
+      { $match: { status: "Completed" } },
+      {
+        $group: {
+          _id: "$team",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const groupByOwners = await Task.aggregate([
+      { $match: { status: "Completed" } },
+      { $unwind: { path: "$owners" } },
+      {
+        $group: {
+          _id: "$owners",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const byTeam = await Team.populate(groupByTeam, {
+      path: "_id",
+      select: "name",
+    });
+    const byProject = await Project.populate(groupByProject, {
+      path: "_id",
+      select: "name",
+    });
+    const byOwners = await Owners.populate(groupByOwners, {
+      path: "_id",
+      select: "name",
+    });
+
+    res.status(200).json({
+      byOwners,
+      byTeam,
+      byProject,
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "error while fetching report of closed tasks" });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
