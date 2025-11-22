@@ -206,12 +206,26 @@ app.get("/tasks", async (req, res) => {
       .populate("project", "name");
 
     res.send(tasks);
-    
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "" });
   }
 });
+
+//update task
+app.post("/tasks/:id", async (req, res) => {
+  try {
+    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.status(200).json({ message: "Task updated successfully", updatedTask });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to update task." });
+  }
+});
+
+
 
 const port = process.env.PORT;
 app.listen(port, () => {
