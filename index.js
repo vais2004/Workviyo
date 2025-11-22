@@ -271,15 +271,24 @@ app.post("/team/:team_id/member", async (req, res) => {
     const populatedTeam = await Team.findById(req.params.team_id).populate(
       "members"
     );
-    res
-      .status(201)
-      .json({
-        message: "New team member added successfully",
-        team: populatedTeam,
-      });
+    res.status(201).json({
+      message: "New team member added successfully",
+      team: populatedTeam,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "failed to add member" });
+  }
+});
+
+//get team
+app.get("/teams", async (req, res) => {
+  try {
+    const teams = await Team.find().populate("members");
+    res.send(teams);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Internal server error");
   }
 });
 
