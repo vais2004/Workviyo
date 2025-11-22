@@ -364,6 +364,22 @@ app.get("/report/last-week", async (req, res) => {
   }
 });
 
+//pending reports
+app.get("report/pending", async (req, res) => {
+  try {
+    const tasks = await Task.find({ status: { $ne: "Completed" } });
+    const simplifiedTasks = tasks.map(({ name, timeToComplete }) => ({
+      name,
+      timeToComplete,
+    }));
+
+    res.send(simplifiedTasks);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "error while fetching pending reports" });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
