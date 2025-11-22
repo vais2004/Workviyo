@@ -123,6 +123,96 @@ app.get("/tags", async (req, res) => {
   }
 });
 
+//new task
+app.post("/tasks", async (req, res) => {
+  try {
+    const newTask = new Task(req.body);
+    newTask
+      .save()
+      .then((savedTask) => {
+        return Task.findById(savedTask._id)
+          .populate("owners", "name")
+          .populate("team", "name")
+          .populate("tag", "name")
+          .populate("project", "name");
+      })
+      .then((populatedTask) => {
+        res.status(201).json({
+          message: "New task created successfully.",
+          task: populatedTask,
+        });
+      })
+      .catch((error) =>
+        res.status(500).json({ message: "task creation failed", error })
+      );
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "task creation failed." });
+  }
+});
+
+//get tasks
+app.get("/tasks", async (req, res) => {
+  try {
+    const { team, owners, project, status, tags } = req.query;
+
+    const filter = {};
+
+    const ownerNames = owners
+      ? owners
+          .split(",")
+          .map((o) => o.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
+      : [];
+    const tagNames = tags
+      ? tags.split(",").map((t) => t.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
+      : [];
+
+    const [ownerDetail, teamDetail, projectDetail] = await Promise.all([
+      ownerNames.length > 0 ? User.find({ name: { $in: ownerNames } }) : [],
+      team ? Team.findOne({ name: team }) : null,
+      project ? Project.findOne({ name: project }) : null,
+    ]);
+
+    if (owners) {
+      if (ownerDetail) {
+        filter.owners = { $in: ownerDetail.map((owner) => owner._id) };
+      }
+    }
+
+    if (tags) {
+      filter.tags = { $in: tagNames };
+    }
+
+    if (project) {
+      if (projectDetail) {
+        filter.project = projectDetail._id;
+      }
+    }
+
+    if (team) {
+      if (teamDetail) {
+        filter.team = teamDetail._id;
+      }
+    }
+
+    if (status) {
+      filter.status = status.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
+    }
+
+    const tasks = await Task.find(filter)
+      .populate("owners", "name")
+      .populate("team", "name")
+      .populate("tags", "name")
+      .populate("project", "name");
+
+    res.send(tasks);
+    
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "" });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
