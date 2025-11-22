@@ -333,6 +333,37 @@ app.get("/projects", async (req, res) => {
   }
 });
 
+//last week reports
+app.get("/report/last-week", async (req, res) => {
+  try {
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const tasks = await Task.aggregate([
+      {
+        $match: {
+          updatedAt: { $gte: oneWeekAgo },
+          status: "Completed",
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { formate: "%d-%m-%Y", date: "$updatedAt" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+
+    res.send(tasks);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "error while fetching report last-week" });
+  }
+});
+
 const port = process.env.PORT;
 app.listen(port, () => {
   console.log("Server is up and running on", port);
