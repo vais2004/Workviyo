@@ -424,7 +424,7 @@ app.get("/report/closed-tasks", async (req, res) => {
       path: "_id",
       select: "name",
     });
-    const byOwners = await Owners.populate(groupByOwners, {
+    const byOwners = await User.populate(groupByOwners, {
       path: "_id",
       select: "name",
     });
