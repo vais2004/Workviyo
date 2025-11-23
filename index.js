@@ -347,7 +347,7 @@ app.get("/report/last-week", async (req, res) => {
       {
         $group: {
           _id: {
-            $dateToString: { formate: "%d-%m-%Y", date: "$updatedAt" },
+            $dateToString: { format: "%d-%m-%Y", date: "$updatedAt" },
           },
           count: { $sum: 1 },
         },
@@ -365,7 +365,7 @@ app.get("/report/last-week", async (req, res) => {
 });
 
 //pending reports
-app.get("report/pending", async (req, res) => {
+app.get("/report/pending", async (req, res) => {
   try {
     const tasks = await Task.find({ status: { $ne: "Completed" } });
     const simplifiedTasks = tasks.map(({ name, timeToComplete }) => ({
