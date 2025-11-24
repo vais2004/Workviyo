@@ -133,7 +133,7 @@ app.post("/tasks", async (req, res) => {
         return Task.findById(savedTask._id)
           .populate("owners", "name")
           .populate("team", "name")
-          .populate("tag", "name")
+          .populate("tags", "name")
           .populate("project", "name");
       })
       .then((populatedTask) => {
@@ -305,9 +305,11 @@ app.post("/projects", async (req, res) => {
     const newProject = new Project(req.body);
     const savedProject = await newProject.save();
 
+    // return the updated project
+    const projects = await Project.find();
     res.status(201).json({
-      message: "New prohect added successfully",
-      project: savedProject,
+      message: "New project added successfully",
+      projects,
     });
   } catch (error) {
     console.log(error);
@@ -330,6 +332,32 @@ app.get("/projects", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json("Internal server error");
+  }
+});
+
+// update project by id
+app.put("/projects/:id", async (req, res) => {
+  try {
+    const updated = await Project.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    const projects = await Project.find();
+    res.status(200).json({ message: "Project updated", projects });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "project update failed" });
+  }
+});
+
+// delete project by id
+app.delete("/projects/:id", async (req, res) => {
+  try {
+    await Project.findByIdAndDelete(req.params.id);
+    const projects = await Project.find();
+    res.status(200).json({ message: "Project deleted", projects });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "project deletion failed" });
   }
 });
 
