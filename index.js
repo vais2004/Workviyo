@@ -213,7 +213,7 @@ app.get("/tasks", async (req, res) => {
 });
 
 //update task by id
-app.post("/tasks/:id", async (req, res) => {
+app.put("/tasks/:id", async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
