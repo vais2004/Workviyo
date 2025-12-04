@@ -4,6 +4,7 @@ const User = require("./models/model.user");
 const Tag = require("./models/model.tag");
 const Team = require("./models/model.team");
 const Project = require("./models/model.project");
+const Members = require("./models/model.member");
 const { initializeDatabase } = require("./db/db.connect");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
@@ -109,6 +110,19 @@ app.get("/users", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json("Internal server error");
+  }
+});
+
+app.get("/members", async (req, res) => {
+  try {
+    const getAllMembers = await Members.find();
+    if (getAllMembers) {
+      return res.status(200).json(getAllMembers);
+    } else {
+      return res.status(400).json({ message: "Failed to fetch members" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server error" });
   }
 });
 
