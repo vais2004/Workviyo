@@ -32,7 +32,11 @@ app.get("/", async (req, res) => {
 //signup
 app.post("/auth/signup", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -41,15 +45,21 @@ app.post("/auth/signup", async (req, res) => {
         .json({ message: "Email already exists, please Login" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({ ...req.body, password: hashedPassword });
+    // NO MANUAL HASHING HERE (schema will handle it)
+    const newUser = new User(req.body);
     const savedUser = await newUser.save();
 
-    res
-      .status(200)
-      .json({ message: "User added successfully.", user: savedUser });
+    const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
+
+    res.status(200).json({
+      message: "User added successfully.",
+      user: savedUser,
+      token,
+    });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Adding user Failed.", error });
   }
 });
