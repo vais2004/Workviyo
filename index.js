@@ -23,7 +23,7 @@ app.use(express.json());
 
 initializeDatabase();
 
-const JWT_SECRET = "workviyoProjectManagement&TaskManagementApp";
+const JWT_SECRET = process.env.JWT_SECRETKEY;
 
 app.get("/", async (req, res) => {
   res.send("Workviyo backend is running successfully");
@@ -32,23 +32,24 @@ app.get("/", async (req, res) => {
 //signup
 app.post("/auth/signup", async (req, res) => {
   try {
-    const { email } = req.body;
-    const existingUser = await User.findOne({ email });
+    const { email, password } = req.body;
 
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
         .status(400)
         .json({ message: "Email already exists, please Login" });
     }
 
-    const newUser = new User(req.body);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({ ...req.body, password: hashedPassword });
     const savedUser = await newUser.save();
 
     res
       .status(200)
-      .json({ message: "User added successfully .", user: savedUser });
+      .json({ message: "User added successfully.", user: savedUser });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Adding user Failed.", error });
   }
 });
@@ -489,8 +490,7 @@ app.get("/report/closed-tasks", async (req, res) => {
 
 module.exports = app;
 
-
-// const port = process.env.PORT;
-// app.listen(port, () => {
-//   console.log("Server is up and running on", PORT);
-// });
+const port = process.env.PORT;
+app.listen(port, () => {
+  console.log("Server is up and running on", PORT);
+});
