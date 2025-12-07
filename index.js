@@ -490,7 +490,7 @@ app.get("/report/closed-tasks", async (req, res) => {
 module.exports = app;
 
 
-const port = process.env.PORT;
-app.listen(port, () => {
-  console.log("Server is up and running on", PORT);
-});
+// const port = process.env.PORT;
+// app.listen(port, () => {
+//   console.log("Server is up and running on", PORT);
+// });
