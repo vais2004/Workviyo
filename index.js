@@ -4,7 +4,7 @@ const User = require("./models/model.user");
 const Tag = require("./models/model.tag");
 const Team = require("./models/model.team");
 const Project = require("./models/model.project");
-const Members = require("./models/model.member");
+const Member = require("./models/model.member");
 const { initializeDatabase } = require("./db/db.connect");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
@@ -82,8 +82,11 @@ app.post("/auth/login", async (req, res) => {
 
 //verify token
 const verifyJWT = (req, res, next) => {
-  const token = req.headers["authorization"].split(" ")[1];
+  const authHeader = req.headers["authorization"];
+  if (!authHeader)
+    return res.status(401).json({ message: "No token provided" });
 
+  const token = authHeader.split(" ")[1];
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
@@ -115,7 +118,7 @@ app.get("/users", async (req, res) => {
 
 app.get("/members", async (req, res) => {
   try {
-    const getAllMembers = await Members.find();
+    const getAllMembers = await Member.find();
     if (getAllMembers) {
       return res.status(200).json(getAllMembers);
     } else {
@@ -483,6 +486,9 @@ app.get("/report/closed-tasks", async (req, res) => {
       .json({ message: "error while fetching report of closed tasks" });
   }
 });
+
+module.exports = app;
+
 
 const port = process.env.PORT;
 app.listen(port, () => {

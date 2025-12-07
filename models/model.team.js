@@ -7,7 +7,7 @@ const teamSchema = new mongoose.Schema({
     unique: true,
   },
   description: { type: String },
-  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "Members" }],
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "Member" }],
 });
 
 module.exports = mongoose.model("Team", teamSchema);
