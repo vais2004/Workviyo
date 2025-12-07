@@ -58,6 +58,8 @@ app.post("/auth/signup", async (req, res) => {
       user: savedUser,
       token,
     });
+
+    console.log(req.body); //just for debugging
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Adding user Failed.", error });
