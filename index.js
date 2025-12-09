@@ -132,14 +132,10 @@ app.get("/users", async (req, res) => {
 //get members
 app.get("/members", async (req, res) => {
   try {
-    const getAllMembers = await Member.find();
-    if (getAllMembers) {
-      return res.status(200).json(getAllMembers);
-    } else {
-      return res.status(400).json({ message: "Failed to fetch members" });
-    }
+    const members = await Member.find();
+    return res.status(200).json(members);
   } catch (error) {
-    res.status(500).json({ message: "Internal Server error" });
+    res.status(500).json({ message: "Internal Server Error", error });
   }
 });
 
@@ -149,13 +145,12 @@ app.post("/members", async (req, res) => {
     const newMember = new Member(req.body);
     const savedMember = await newMember.save();
 
-    if (savedMember) {
-      return res.status(201).json(savedMember);
-    } else {
-      return res.status(400).json({ message: "Failed to add member" });
-    }
+    return res.status(201).json({
+      message: "Member added successfully",
+      member: savedMember,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Internal Server error" });
+    res.status(500).json({ message: "Internal Server Error", error });
   }
 });
 
@@ -164,13 +159,13 @@ app.delete("/members/:id", async (req, res) => {
   try {
     const deletedMember = await Member.findByIdAndDelete(req.params.id);
 
-    if (deletedMember) {
-      return res.status(200).json({ message: "Member deleted successfully" });
-    } else {
+    if (!deletedMember) {
       return res.status(404).json({ message: "Member not found" });
     }
+
+    res.status(200).json({ message: "Member deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Internal Server error" });
+    res.status(500).json({ message: "Internal Server Error", error });
   }
 });
 
