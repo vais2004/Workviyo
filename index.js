@@ -82,7 +82,9 @@ app.post("/auth/login", async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: "Incorrect password." });
     }
-    const token = jwt.sign({ existingUser }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ id: existingUser._id }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
 
     res
       .status(200)
@@ -105,10 +107,8 @@ const verifyJWT = (req, res, next) => {
   }
 
   jwt.verify(token, JWT_SECRET, (error, decoded) => {
-    if (error) {
-      return res.status(402).json({ message: "Invalid token" });
-    }
-    req.user = decoded.existingUser;
+    if (error) return res.status(401).json({ message: "Invalid token" });
+    req.user = decoded.id;
     next();
   });
 };
@@ -224,11 +224,13 @@ app.get("/tasks", async (req, res) => {
       ? tags.split(",").map((t) => t.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
       : [];
 
-    const [ownerDetail, teamDetail, projectDetail] = await Promise.all([
-      ownerNames.length > 0 ? User.find({ name: { $in: ownerNames } }) : [],
-      team ? Team.findOne({ name: team }) : null,
-      project ? Project.findOne({ name: project }) : null,
-    ]);
+    const [ownerDetail, teamDetail, projectDetail, tagDetail] =
+      await Promise.all([
+        ownerNames.length > 0 ? User.find({ name: { $in: ownerNames } }) : [],
+        team ? Team.findOne({ name: team }) : null,
+        project ? Project.findOne({ name: project }) : null,
+        tagNames.length > 0 ? Tag.find({ name: { $in: tagNames } }) : [],
+      ]);
 
     if (owners) {
       if (ownerDetail) {
@@ -237,7 +239,7 @@ app.get("/tasks", async (req, res) => {
     }
 
     if (tags) {
-      filter.tags = { $in: tagNames };
+      filter.tags = { $in: tagDetail.map((t) => t._id) };
     }
 
     if (project) {
@@ -265,7 +267,7 @@ app.get("/tasks", async (req, res) => {
     res.send(tasks);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "" });
+    res.status(500).json({ message: "Something went wrong" });
   }
 });
 
@@ -529,7 +531,7 @@ app.get("/report/closed-tasks", async (req, res) => {
 
 module.exports = app;
 
-const port = process.env.PORT;
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
-  console.log("Server is up and running on", PORT);
+  console.log("Server is up and running on", port);
 });
