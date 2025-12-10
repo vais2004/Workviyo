@@ -11,17 +11,17 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    try {
-      const salt = await bcrypt.genSalt(10);
-      const hashed = await bcrypt.hash(this.password, salt);
-      this.password = hashed;
-    } catch (error) {
-      return next(error);
-    }
+  if (!this.isModified("password")) {
+    return next();
   }
 
-  next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = mongoose.model("User", userSchema);
