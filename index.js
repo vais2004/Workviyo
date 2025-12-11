@@ -217,15 +217,20 @@ app.get("/tasks", async (req, res) => {
     const filter = {};
 
     // format owners: ["RaniKawale"] → ["Rani Kawale"]
+    // format owners safely
     const ownerNames = owners
       ? owners
           .split(",")
+          .filter(Boolean)
           .map((o) => o.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
       : [];
 
-    // format tags
+    // format tags safely
     const tagNames = tags
-      ? tags.split(",").map((t) => t.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
+      ? tags
+          .split(",")
+          .filter(Boolean)
+          .map((t) => t.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
       : [];
 
     // fetch related documents (parallel for speed)
@@ -238,16 +243,16 @@ app.get("/tasks", async (req, res) => {
       ]);
 
     // apply filters
-    if (owners && ownerDetail.length) {
+    if (ownerNames.length && ownerDetail?.length) {
       filter.owners = { $in: ownerDetail.map((o) => o._id) };
     }
 
-    if (tags && tagDetail.length) {
+    if (tagNames.length && tagDetail?.length) {
       filter.tags = { $in: tagDetail.map((t) => t._id) };
     }
 
-    if (project && projectDetail) filter.project = projectDetail._id;
-    if (team && teamDetail) filter.team = teamDetail._id;
+    if (project && projectDetail?._id) filter.project = projectDetail._id;
+    if (team && teamDetail?._id) filter.team = teamDetail._id;
     if (status)
       filter.status = status.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
 
@@ -267,22 +272,30 @@ app.get("/tasks", async (req, res) => {
       const order = { Low: 1, Medium: 2, High: 3 };
 
       if (prioritySort === "Low-High") {
-        tasks.sort((a, b) => order[a.priority] - order[b.priority]);
+        tasks.sort(
+          (a, b) => (order[a.priority] || 0) - (order[b.priority] || 0)
+        );
       }
 
       if (prioritySort === "High-Low") {
-        tasks.sort((a, b) => order[b.priority] - order[a.priority]);
+        tasks.sort(
+          (a, b) => (order[b.priority] || 0) - (order[a.priority] || 0)
+        );
       }
     }
 
     // Date sorting (createdAt)
     if (dateSort) {
       if (dateSort === "Newest-Oldest") {
-        tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        tasks.sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        );
       }
 
       if (dateSort === "Oldest-Newest") {
-        tasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        tasks.sort(
+          (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
+        );
       }
     }
 
