@@ -208,66 +208,94 @@ app.post("/tasks", async (req, res) => {
   }
 });
 
-//get tasks
+// get task
 app.get("/tasks", async (req, res) => {
   try {
-    const { team, owners, project, status, tags } = req.query;
+    const { team, owners, project, status, tags, prioritySort, dateSort } =
+      req.query;
 
     const filter = {};
 
+    // format owners: ["RaniKawale"] → ["Rani Kawale"]
     const ownerNames = owners
       ? owners
           .split(",")
           .map((o) => o.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
       : [];
+
+    // format tags
     const tagNames = tags
       ? tags.split(",").map((t) => t.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
       : [];
 
+    // fetch related documents (parallel for speed)
     const [ownerDetail, teamDetail, projectDetail, tagDetail] =
       await Promise.all([
-        ownerNames.length > 0 ? User.find({ name: { $in: ownerNames } }) : [],
+        ownerNames.length ? User.find({ name: { $in: ownerNames } }) : [],
         team ? Team.findOne({ name: team }) : null,
         project ? Project.findOne({ name: project }) : null,
-        tagNames.length > 0 ? Tag.find({ name: { $in: tagNames } }) : [],
+        tagNames.length ? Tag.find({ name: { $in: tagNames } }) : [],
       ]);
 
-    if (owners) {
-      if (ownerDetail) {
-        filter.owners = { $in: ownerDetail.map((owner) => owner._id) };
-      }
+    // apply filters
+    if (owners && ownerDetail.length) {
+      filter.owners = { $in: ownerDetail.map((o) => o._id) };
     }
 
-    if (tags) {
+    if (tags && tagDetail.length) {
       filter.tags = { $in: tagDetail.map((t) => t._id) };
     }
 
-    if (project) {
-      if (projectDetail) {
-        filter.project = projectDetail._id;
-      }
-    }
-
-    if (team) {
-      if (teamDetail) {
-        filter.team = teamDetail._id;
-      }
-    }
-
-    if (status) {
+    if (project && projectDetail) filter.project = projectDetail._id;
+    if (team && teamDetail) filter.team = teamDetail._id;
+    if (status)
       filter.status = status.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
-    }
 
-    const tasks = await Task.find(filter)
+    // fetch tasks
+    let tasks = await Task.find(filter)
       .populate("owners", "name")
       .populate("team", "name")
       .populate("tags", "name")
       .populate("project", "name");
 
-    res.send(tasks);
+    // ---------------------------
+    // 🔥 SORTING LOGIC STARTS HERE
+    // ---------------------------
+
+    // Priority sorting
+    if (prioritySort) {
+      const order = { Low: 1, Medium: 2, High: 3 };
+
+      if (prioritySort === "Low-High") {
+        tasks.sort((a, b) => order[a.priority] - order[b.priority]);
+      }
+
+      if (prioritySort === "High-Low") {
+        tasks.sort((a, b) => order[b.priority] - order[a.priority]);
+      }
+    }
+
+    // Date sorting (createdAt)
+    if (dateSort) {
+      if (dateSort === "Newest-Oldest") {
+        tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+
+      if (dateSort === "Oldest-Newest") {
+        tasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+    }
+
+    // ---------------------------
+    // 🔥 SORTING LOGIC ENDS HERE
+    // ---------------------------
+
+    return res.status(200).json(tasks);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.log("TASK FETCH ERROR:", error);
+    return res
+      .status(500)
+      .json({ message: "Something went wrong fetching tasks" });
   }
 });
 
