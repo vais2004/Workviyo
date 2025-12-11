@@ -4,4 +4,5 @@ const memberSchema = new mongoose.Schema({
   name: { type: String, required: true },
 });
 
-module.exports = mongoose.model("Member", memberSchema);
+module.exports =
+  mongoose.models.Member || mongoose.model("Member", memberSchema);

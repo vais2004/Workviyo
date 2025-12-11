@@ -19,10 +19,8 @@ const taskSchema = new mongoose.Schema(
       enum: ["To Do", "In Progress", "Completed", "Blocked"],
       default: "To Do",
     },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Task", taskSchema);
+module.exports = mongoose.models.Task || mongoose.model("Task", taskSchema);
