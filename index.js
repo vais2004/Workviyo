@@ -23,7 +23,7 @@ app.use(express.json());
 
 initializeDatabase();
 
-const JWT_SECRET = process.env.JWT_SECRETKEY;
+const JWT_SECRET = workviyoProjectManagementTaskManagementApp
 
 app.get("/", async (req, res) => {
   res.send("Workviyo backend is running successfully");
