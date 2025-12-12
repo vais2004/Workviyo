@@ -181,38 +181,82 @@ app.get("/tags", async (req, res) => {
   }
 });
 
-//new task
+// New Task
 app.post("/tasks", async (req, res) => {
   try {
-    let { tags = [], ...body } = req.body;
+    let { tags = [], team, project, owners = [], ...rest } = req.body;
 
-    // Convert tag name strings → Tag ObjectIds
-    const tagIds = [];
-    for (let tag of tags) {
-      let existingTag = await Tag.findOne({ name: tag });
-      if (!existingTag) {
-        existingTag = await Tag.create({ name: tag });
+    // Final data object
+    const finalData = { ...rest };
+
+    // TEAM name → ObjectId
+    if (team) {
+      const teamDoc = await Team.findOne({ name: team });
+      if (!teamDoc) {
+        return res.status(400).json({ message: `Team '${team}' not found` });
       }
-      tagIds.push(existingTag._id);
+      finalData.team = teamDoc._id;
     }
 
-    const newTask = new Task({ ...body, tags: tagIds });
+    // PROJECT name → ObjectId
+    if (project) {
+      const projectDoc = await Project.findOne({ name: project });
+      if (!projectDoc) {
+        return res
+          .status(400)
+          .json({ message: `Project '${project}' not found` });
+      }
+      finalData.project = projectDoc._id;
+    }
 
-    const savedTask = await newTask.save();
+    // OWNERS names → ObjectId[]
+    const ownerIds = [];
+    for (let name of owners) {
+      const formatted = name.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
+      const userDoc = await User.findOne({ name: formatted });
 
-    const populatedTask = await Task.findById(savedTask._id)
-      .populate("owners", "name")
-      .populate("team", "name")
-      .populate("tags", "name")
-      .populate("project", "name");
+      if (!userDoc) {
+        return res
+          .status(400)
+          .json({ message: `Owner '${formatted}' not found` });
+      }
+      ownerIds.push(userDoc._id);
+    }
+    finalData.owners = ownerIds;
 
-    res.status(201).json({
-      message: "New task created successfully.",
-      task: populatedTask,
-    });
+    // TAGS → create if not exists → ObjectId[]
+    const tagIds = [];
+    for (let tag of tags) {
+      let tagDoc = await Tag.findOne({ name: tag });
+      if (!tagDoc) tagDoc = await Tag.create({ name: tag });
+      tagIds.push(tagDoc._id);
+    }
+    finalData.tags = tagIds;
+
+    // SAVE the task (your exact style)
+    const newTask = new Task(finalData);
+
+    newTask
+      .save()
+      .then((savedTask) => {
+        return Task.findById(savedTask._id)
+          .populate("owners", "name")
+          .populate("team", "name")
+          .populate("project", "name")
+          .populate("tags", "name");
+      })
+      .then((populatedTask) => {
+        res.status(201).json({
+          message: "New task created successfully.",
+          task: populatedTask,
+        });
+      })
+      .catch((error) =>
+        res.status(500).json({ message: "Task creation failed.", error })
+      );
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "task creation failed.", error });
+    res.status(500).json({ message: "Task creation failed." });
   }
 });
 
