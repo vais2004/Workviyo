@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const Task = require("./models/model.task");
 const User = require("./models/model.user");
@@ -23,7 +24,7 @@ app.use(express.json());
 
 initializeDatabase();
 
-const JWT_SECRET = "workviyoProjectManagementTaskManagementApp"
+const JWT_SECRET = process.env.JWT_SECRETKEY;
 
 app.get("/", async (req, res) => {
   res.send("Workviyo backend is running successfully");
