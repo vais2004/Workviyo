@@ -181,61 +181,10 @@ app.get("/tags", async (req, res) => {
   }
 });
 
-// New Task
+// new Task
 app.post("/tasks", async (req, res) => {
   try {
-    let { tags = [], team, project, owners = [], ...rest } = req.body;
-
-    // Final data object
-    const finalData = { ...rest };
-
-    // TEAM name → ObjectId
-    if (team) {
-      const teamDoc = await Team.findOne({ name: team });
-      if (!teamDoc) {
-        return res.status(400).json({ message: `Team '${team}' not found` });
-      }
-      finalData.team = teamDoc._id;
-    }
-
-    // PROJECT name → ObjectId
-    if (project) {
-      const projectDoc = await Project.findOne({ name: project });
-      if (!projectDoc) {
-        return res
-          .status(400)
-          .json({ message: `Project '${project}' not found` });
-      }
-      finalData.project = projectDoc._id;
-    }
-
-    // OWNERS names → ObjectId[]
-    const ownerIds = [];
-    for (let name of owners) {
-      const formatted = name.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
-      const userDoc = await User.findOne({ name: formatted });
-
-      if (!userDoc) {
-        return res
-          .status(400)
-          .json({ message: `Owner '${formatted}' not found` });
-      }
-      ownerIds.push(userDoc._id);
-    }
-    finalData.owners = ownerIds;
-
-    // TAGS → create if not exists → ObjectId[]
-    const tagIds = [];
-    for (let tag of tags) {
-      let tagDoc = await Tag.findOne({ name: tag });
-      if (!tagDoc) tagDoc = await Tag.create({ name: tag });
-      tagIds.push(tagDoc._id);
-    }
-    finalData.tags = tagIds;
-
-    // SAVE the task (your exact style)
-    const newTask = new Task(finalData);
-
+    const newTask = new Task(req.body);
     newTask
       .save()
       .then((savedTask) => {
@@ -246,10 +195,12 @@ app.post("/tasks", async (req, res) => {
           .populate("tags", "name");
       })
       .then((populatedTask) => {
-        res.status(201).json({
-          message: "New task created successfully.",
-          task: populatedTask,
-        });
+        res
+          .status(201)
+          .json({
+            message: "New task created successfully.",
+            task: populatedTask,
+          });
       })
       .catch((error) =>
         res.status(500).json({ message: "Task creation failed.", error })
