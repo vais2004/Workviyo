@@ -182,32 +182,54 @@ app.get("/tags", async (req, res) => {
 });
 
 // new Task
+
 app.post("/tasks", async (req, res) => {
   try {
-    const newTask = new Task(req.body);
-    newTask
-      .save()
-      .then((savedTask) => {
-        return Task.findById(savedTask._id)
-          .populate("owners", "name")
-          .populate("team", "name")
-          .populate("project", "name")
-          .populate("tags", "name");
-      })
-      .then((populatedTask) => {
-        res
-          .status(201)
-          .json({
-            message: "New task created successfully.",
-            task: populatedTask,
-          });
-      })
-      .catch((error) =>
-        res.status(500).json({ message: "Task creation failed.", error })
-      );
+    const { owners, tags, team, project } = req.body;
+
+    // Convert owner names → ids
+    const ownerDocs =
+      owners && owners.length ? await User.find({ name: { $in: owners } }) : [];
+
+    // Convert tag names → ids
+    const tagDocs =
+      tags && tags.length ? await Tag.find({ name: { $in: tags } }) : [];
+
+    // Convert team name → id
+    const teamDoc = team ? await Team.findOne({ name: team }) : null;
+
+    // Convert project name → id
+    const projectDoc = project
+      ? await Project.findOne({ name: project })
+      : null;
+
+    // Create new task with converted IDs
+    const newTask = new Task({
+      ...req.body,
+      owners: ownerDocs.map((o) => o._id),
+      tags: tagDocs.map((t) => t._id),
+      team: teamDoc?._id || null,
+      project: projectDoc?._id || null,
+    });
+
+    const savedTask = await newTask.save();
+
+    const populatedTask = await Task.findById(savedTask._id)
+      .populate("owners", "name")
+      .populate("tags", "name")
+      .populate("team", "name")
+      .populate("project", "name");
+
+    return res.status(201).json({
+      message: "New task created successfully.",
+      task: populatedTask,
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Task creation failed." });
+    console.log("TASK CREATE ERROR:", error);
+    return res.status(500).json({
+      message: "Task creation failed.",
+      error,
+    });
   }
 });
 
