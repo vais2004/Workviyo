@@ -184,28 +184,35 @@ app.get("/tags", async (req, res) => {
 //new task
 app.post("/tasks", async (req, res) => {
   try {
-    const newTask = new Task(req.body);
-    newTask
-      .save()
-      .then((savedTask) => {
-        return Task.findById(savedTask._id)
-          .populate("owners", "name")
-          .populate("team", "name")
-          .populate("tags", "name")
-          .populate("project", "name");
-      })
-      .then((populatedTask) => {
-        res.status(201).json({
-          message: "New task created successfully.",
-          task: populatedTask,
-        });
-      })
-      .catch((error) =>
-        res.status(500).json({ message: "task creation failed", error })
-      );
+    let { tags = [], ...body } = req.body;
+
+    // Convert tag name strings → Tag ObjectIds
+    const tagIds = [];
+    for (let tag of tags) {
+      let existingTag = await Tag.findOne({ name: tag });
+      if (!existingTag) {
+        existingTag = await Tag.create({ name: tag });
+      }
+      tagIds.push(existingTag._id);
+    }
+
+    const newTask = new Task({ ...body, tags: tagIds });
+
+    const savedTask = await newTask.save();
+
+    const populatedTask = await Task.findById(savedTask._id)
+      .populate("owners", "name")
+      .populate("team", "name")
+      .populate("tags", "name")
+      .populate("project", "name");
+
+    res.status(201).json({
+      message: "New task created successfully.",
+      task: populatedTask,
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "task creation failed." });
+    res.status(500).json({ message: "task creation failed.", error });
   }
 });
 
