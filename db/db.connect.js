@@ -27,8 +27,8 @@ const initializeDatabase = async () => {
 
   try {
     const db = await mongoose.connect(process.env.MONGODB, {
-      serverSelectionTimeoutMS: 5000,
-      maxPoolSize: 5,
+      serverSelectionTimeoutMS: 30000,
+      maxPoolSize: 10,
     });
 
     isConnected = db.connections[0].readyState === 1;
