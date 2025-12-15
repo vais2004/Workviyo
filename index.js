@@ -214,33 +214,16 @@ app.delete("/tags/:id", async (req, res) => {
 // new Task
 app.post("/tasks", async (req, res) => {
   try {
-    const { owners, tags, team, project } = req.body;
+    const { name, team, project, owners, timeToComplete } = req.body;
 
-    // Convert owner names → ids
-    const ownerDocs =
-      owners && owners.length ? await User.find({ name: { $in: owners } }) : [];
+    // Basic validation (very important)
+    if (!name || !team || !project || !owners?.length || !timeToComplete) {
+      return res.status(400).json({
+        message: "Required fields missing",
+      });
+    }
 
-    // Convert tag names → ids
-    const tagDocs =
-      tags && tags.length ? await Tag.find({ name: { $in: tags } }) : [];
-
-    // Convert team name → id
-    const teamDoc = team ? await Team.findOne({ name: team }) : null;
-
-    // Convert project name → id
-    const projectDoc = project
-      ? await Project.findOne({ name: project })
-      : null;
-
-    // Create new task with converted IDs
-    const newTask = new Task({
-      ...req.body,
-      owners: ownerDocs.map((o) => o._id),
-      tags: tagDocs.map((t) => t._id),
-      team: teamDoc?._id || null,
-      project: projectDoc?._id || null,
-    });
-
+    const newTask = new Task(req.body);
     const savedTask = await newTask.save();
 
     const populatedTask = await Task.findById(savedTask._id)
@@ -249,14 +232,11 @@ app.post("/tasks", async (req, res) => {
       .populate("team", "name")
       .populate("project", "name");
 
-    return res.status(201).json({
-      message: "New task created successfully.",
-      task: populatedTask,
-    });
+    return res.status(201).json(populatedTask);
   } catch (error) {
     console.log("TASK CREATE ERROR:", error);
     return res.status(500).json({
-      message: "Task creation failed.",
+      message: "Task creation failed",
       error,
     });
   }
@@ -371,8 +351,13 @@ app.put("/tasks/:id", async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-    });
-    res.status(200).json({ message: "Task updated successfully", updatedTask });
+    })
+      .populate("owners", "name")
+      .populate("tags", "name")
+      .populate("team", "name")
+      .populate("project", "name");
+
+    res.status(200).json(updatedTask);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Failed to update task." });
