@@ -389,9 +389,18 @@ app.post("/teams", async (req, res) => {
 // update team
 app.put("/teams/:id", async (req, res) => {
   try {
-    const updatedTeam = await Team.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    }).populate("members");
+    const { members, name } = req.body;
+
+    const updatedTeam = await Team.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(name && { name }),
+        ...(members && {
+          $addToSet: { members: { $each: members } }, // ⭐ KEY FIX
+        }),
+      },
+      { new: true }
+    ).populate("members");
 
     if (!updatedTeam) {
       return res.status(404).json({ message: "Team not found" });
