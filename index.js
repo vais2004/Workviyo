@@ -181,8 +181,37 @@ app.get("/tags", async (req, res) => {
   }
 });
 
-// new Task
+//post tag
+app.post("/tags", async (req, res) => {
+  try {
+    const newTag = new Tag(req.body);
+    const savedTag = await newTag.save();
 
+    return res.status(201).json({
+      message: "Tag added successfully",
+      tags: savedTag,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error", error });
+  }
+});
+
+//delete tag
+app.delete("/tags/:id", async (req, res) => {
+  try {
+    const deletedTag = await Tag.findByIdAndDelete(req.params.id);
+
+    if (!deletedTag) {
+      return res.status(404).json({ message: "Tag not found" });
+    }
+
+    res.status(200).json({ message: "Tag deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error", error });
+  }
+});
+
+// new Task
 app.post("/tasks", async (req, res) => {
   try {
     const { owners, tags, team, project } = req.body;
