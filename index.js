@@ -386,23 +386,21 @@ app.post("/teams", async (req, res) => {
   }
 });
 
-//add new team member
-app.post("/team/:team_id/member", async (req, res) => {
-  const { member } = req.body;
+// update team
+app.put("/teams/:id", async (req, res) => {
   try {
-    const team = await Team.findById(req.params.team_id);
-    team.members.push(member);
-    await team.save();
-    const populatedTeam = await Team.findById(req.params.team_id).populate(
-      "members"
-    );
-    res.status(201).json({
-      message: "New team member added successfully",
-      team: populatedTeam,
-    });
+    const updatedTeam = await Team.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    }).populate("members");
+
+    if (!updatedTeam) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    res.status(200).json(updatedTeam);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "failed to add member" });
+    res.status(500).json({ message: "Failed to update team", error });
   }
 });
 
