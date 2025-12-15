@@ -404,6 +404,20 @@ app.put("/teams/:id", async (req, res) => {
   }
 });
 
+app.delete("/teams/:id", async (req, res) => {
+  try {
+    const deletedTeam = await Team.findByIdAndDelete(req.params.id);
+
+    if (!deletedTeam) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    res.status(200).json({ message: "Team deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error", error });
+  }
+});
+
 //get team
 app.get("/teams", async (req, res) => {
   try {
