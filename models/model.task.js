@@ -17,6 +17,7 @@ const taskSchema = new mongoose.Schema(
       type: String,
       enum: ["Low", "Medium", "High"],
       default: "Medium",
+      required: true,
     },
     timeToComplete: { type: Number, required: true },
     tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }],
@@ -24,6 +25,7 @@ const taskSchema = new mongoose.Schema(
       type: String,
       enum: ["To Do", "In Progress", "Completed", "Blocked"],
       default: "To Do",
+      required: true,
     },
   },
   { timestamps: true }

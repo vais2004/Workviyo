@@ -2,11 +2,12 @@ const mongoose = require("mongoose");
 
 const projectSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
-  description: { type: String },
+  description: { type: String, required: true },
   status: {
     type: String,
     enum: ["To Do", "In Progress", "Completed", "Blocked"],
     default: "To Do",
+    required: true,
   },
   createdAt: { type: Date, default: Date.now },
 });
