@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const Task = require("./models/model.task");
 const User = require("./models/model.user");
-const Tag = require("./models/model.tag");
 const Team = require("./models/model.team");
 const Project = require("./models/model.project");
 const Member = require("./models/model.member");
@@ -170,47 +169,6 @@ app.delete("/members/:id", async (req, res) => {
   }
 });
 
-//get tags
-app.get("/tags", async (req, res) => {
-  try {
-    const tags = await Tag.find();
-    res.send(tags);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json("Internal server error");
-  }
-});
-
-//post tag
-app.post("/tags", async (req, res) => {
-  try {
-    const newTag = new Tag(req.body);
-    const savedTag = await newTag.save();
-
-    return res.status(201).json({
-      message: "Tag added successfully",
-      tags: savedTag,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error", error });
-  }
-});
-
-//delete tag
-app.delete("/tags/:id", async (req, res) => {
-  try {
-    const deletedTag = await Tag.findByIdAndDelete(req.params.id);
-
-    if (!deletedTag) {
-      return res.status(404).json({ message: "Tag not found" });
-    }
-
-    res.status(200).json({ message: "Tag deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error", error });
-  }
-});
-
 // new Task
 app.post("/tasks", async (req, res) => {
   try {
@@ -228,7 +186,7 @@ app.post("/tasks", async (req, res) => {
 
     const populatedTask = await Task.findById(savedTask._id)
       .populate("owners", "name")
-      .populate("tags", "name")
+
       .populate("team", "name")
       .populate("project", "name");
 
@@ -268,21 +226,19 @@ app.get("/tasks", async (req, res) => {
       : [];
 
     // fetch related documents (parallel for speed)
-    const [ownerDetail, teamDetail, projectDetail, tagDetail] =
-      await Promise.all([
-        ownerNames.length ? User.find({ name: { $in: ownerNames } }) : [],
-        team ? Team.findOne({ name: team }) : null,
-        project ? Project.findOne({ name: project }) : null,
-        tagNames.length ? Tag.find({ name: { $in: tagNames } }) : [],
-      ]);
+    const [ownerDetail, teamDetail, projectDetail] = await Promise.all([
+      ownerNames.length ? User.find({ name: { $in: ownerNames } }) : [],
+      team ? Team.findOne({ name: team }) : null,
+      project ? Project.findOne({ name: project }) : null,
+    ]);
 
     // apply filters
     if (ownerNames.length && ownerDetail?.length) {
       filter.owners = { $in: ownerDetail.map((o) => o._id) };
     }
 
-    if (tagNames.length && tagDetail?.length) {
-      filter.tags = { $in: tagDetail.map((t) => t._id) };
+    if (tagNames.length) {
+      filter.tags = { $in: tagNames };
     }
 
     if (project && projectDetail?._id) filter.project = projectDetail._id;
@@ -294,7 +250,7 @@ app.get("/tasks", async (req, res) => {
     let tasks = await Task.find(filter)
       .populate("owners", "name")
       .populate("team", "name")
-      .populate("tags", "name")
+
       .populate("project", "name");
 
     // ---------------------------
@@ -353,7 +309,7 @@ app.put("/tasks/:id", async (req, res) => {
       new: true,
     })
       .populate("owners", "name")
-      .populate("tags", "name")
+
       .populate("team", "name")
       .populate("project", "name");
 

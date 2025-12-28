@@ -20,7 +20,11 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
     timeToComplete: { type: Number, required: true },
-    tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }],
+    tags: {
+      type: [String],
+      default: [],
+      required: true,
+    },
     status: {
       type: String,
       enum: ["To Do", "In Progress", "Completed", "Blocked"],
