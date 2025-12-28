@@ -170,8 +170,11 @@ app.delete("/members/:id", async (req, res) => {
 });
 
 // Add Task
+// Add Task
 app.post("/tasks", async (req, res) => {
   try {
+    console.log("REQ.BODY:", req.body); // log incoming payload
+
     const {
       name,
       team,
@@ -183,10 +186,13 @@ app.post("/tasks", async (req, res) => {
       tags,
     } = req.body;
 
+    // Validate required fields
     if (!name || !team || !project || !owners?.length || !timeToComplete) {
+      console.log("Validation failed: Missing required fields");
       return res.status(400).json({ message: "Required fields missing" });
     }
 
+    // Create new task object
     const newTask = new Task({
       name,
       team,
@@ -197,12 +203,31 @@ app.post("/tasks", async (req, res) => {
       status,
       tags,
     });
-    const savedTask = await newTask.save();
 
-    const populatedTask = await Task.findById(savedTask._id)
-      .populate("owners", "name")
-      .populate("team", "name")
-      .populate("project", "name");
+    let savedTask;
+    try {
+      savedTask = await newTask.save();
+      console.log("Task saved successfully:", savedTask);
+    } catch (saveError) {
+      console.log("Error saving task:", saveError);
+      return res.status(500).json({ message: "Error saving task", saveError });
+    }
+
+    // Populate related fields
+    let populatedTask;
+    try {
+      populatedTask = await Task.findById(savedTask._id)
+        .populate("owners", "name")
+        .populate("team", "name")
+        .populate("project", "name");
+
+      console.log("Populated Task:", populatedTask);
+    } catch (populateError) {
+      console.log("Error populating task:", populateError);
+      return res
+        .status(500)
+        .json({ message: "Error populating task", populateError });
+    }
 
     res.status(201).json(populatedTask);
   } catch (error) {
