@@ -169,165 +169,117 @@ app.delete("/members/:id", async (req, res) => {
   }
 });
 
-// new Task
+// Add Task
 app.post("/tasks", async (req, res) => {
   try {
-    const { name, team, project, owners, timeToComplete } = req.body;
+    const {
+      name,
+      team,
+      project,
+      owners,
+      timeToComplete,
+      priority,
+      status,
+      tags,
+    } = req.body;
 
-    // Basic validation (very important)
     if (!name || !team || !project || !owners?.length || !timeToComplete) {
-      return res.status(400).json({
-        message: "Required fields missing",
-      });
+      return res.status(400).json({ message: "Required fields missing" });
     }
 
-    const newTask = new Task(req.body);
+    const newTask = new Task({
+      name,
+      team,
+      project,
+      owners,
+      timeToComplete,
+      priority,
+      status,
+      tags,
+    });
     const savedTask = await newTask.save();
 
     const populatedTask = await Task.findById(savedTask._id)
       .populate("owners", "name")
-
       .populate("team", "name")
       .populate("project", "name");
 
-    return res.status(201).json(populatedTask);
+    res.status(201).json(populatedTask);
   } catch (error) {
     console.log("TASK CREATE ERROR:", error);
-    return res.status(500).json({
-      message: "Task creation failed",
-      error,
-    });
+    res.status(500).json({ message: "Task creation failed", error });
   }
 });
 
-// get task
+// Get Tasks
 app.get("/tasks", async (req, res) => {
   try {
     const { team, owners, project, status, tags, prioritySort, dateSort } =
       req.query;
-
     const filter = {};
 
-    // format owners: ["RaniKawale"] → ["Rani Kawale"]
-    // format owners safely
-    const ownerNames = owners
-      ? owners
-          .split(",")
-          .filter(Boolean)
-          .map((o) => o.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
-      : [];
+    if (owners) filter.owners = { $in: owners.split(",") };
+    if (team) filter.team = team;
+    if (project) filter.project = project;
+    if (status) filter.status = status;
+    if (tags) filter.tags = { $in: tags.split(",") };
 
-    // format tags safely
-    const tagNames = tags
-      ? tags
-          .split(",")
-          .filter(Boolean)
-          .map((t) => t.replace(/([a-z])([A-Z])/g, "$1 $2").trim())
-      : [];
-
-    // fetch related documents (parallel for speed)
-    const [ownerDetail, teamDetail, projectDetail] = await Promise.all([
-      ownerNames.length ? User.find({ name: { $in: ownerNames } }) : [],
-      team ? Team.findOne({ name: team }) : null,
-      project ? Project.findOne({ name: project }) : null,
-    ]);
-
-    // apply filters
-    if (ownerNames.length && ownerDetail?.length) {
-      filter.owners = { $in: ownerDetail.map((o) => o._id) };
-    }
-
-    if (tagNames.length) {
-      filter.tags = { $in: tagNames };
-    }
-
-    if (project && projectDetail?._id) filter.project = projectDetail._id;
-    if (team && teamDetail?._id) filter.team = teamDetail._id;
-    if (status)
-      filter.status = status.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
-
-    // fetch tasks
     let tasks = await Task.find(filter)
       .populate("owners", "name")
       .populate("team", "name")
-
       .populate("project", "name");
 
-    // ---------------------------
-    // 🔥 SORTING LOGIC STARTS HERE
-    // ---------------------------
-
-    // Priority sorting
     if (prioritySort) {
       const order = { Low: 1, Medium: 2, High: 3 };
-
-      if (prioritySort === "Low-High") {
-        tasks.sort(
-          (a, b) => (order[a.priority] || 0) - (order[b.priority] || 0)
-        );
-      }
-
-      if (prioritySort === "High-Low") {
-        tasks.sort(
-          (a, b) => (order[b.priority] || 0) - (order[a.priority] || 0)
-        );
-      }
+      tasks.sort((a, b) =>
+        prioritySort === "Low-High"
+          ? order[a.priority] - order[b.priority]
+          : order[b.priority] - order[a.priority]
+      );
     }
 
-    // Date sorting (createdAt)
     if (dateSort) {
-      if (dateSort === "Newest-Oldest") {
-        tasks.sort(
-          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-        );
-      }
-
-      if (dateSort === "Oldest-Newest") {
-        tasks.sort(
-          (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
-        );
-      }
+      tasks.sort((a, b) =>
+        dateSort === "Newest-Oldest"
+          ? new Date(b.createdAt) - new Date(a.createdAt)
+          : new Date(a.createdAt) - new Date(b.createdAt)
+      );
     }
 
-    // ---------------------------
-    // 🔥 SORTING LOGIC ENDS HERE
-    // ---------------------------
-
-    return res.status(200).json(tasks);
+    res.status(200).json(tasks);
   } catch (error) {
     console.log("TASK FETCH ERROR:", error);
-    return res
+    res
       .status(500)
-      .json({ message: "Something went wrong fetching tasks" });
+      .json({ message: "Something went wrong fetching tasks", error });
   }
 });
 
-//update task by id
+// Update Task
 app.put("/tasks/:id", async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     })
       .populate("owners", "name")
-
       .populate("team", "name")
       .populate("project", "name");
 
     res.status(200).json(updatedTask);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Failed to update task." });
+    console.log("TASK UPDATE ERROR:", error);
+    res.status(500).json({ message: "Failed to update task", error });
   }
 });
 
-// delete task by id
+// Delete Task
 app.delete("/tasks/:id", async (req, res) => {
   try {
     const deletedTask = await Task.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Task deleted successfully", deletedTask });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Failed to delete task." });
+    console.log("TASK DELETE ERROR:", error);
+    res.status(500).json({ message: "Failed to delete task", error });
   }
 });
 
