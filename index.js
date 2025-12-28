@@ -173,7 +173,7 @@ app.delete("/members/:id", async (req, res) => {
 // Add Task
 app.post("/tasks", async (req, res) => {
   try {
-    console.log("REQ.BODY:", req.body); // log incoming payload
+    console.log("TASK PAYLOAD RECEIVED:", req.body);
 
     const {
       name,
@@ -186,13 +186,17 @@ app.post("/tasks", async (req, res) => {
       tags,
     } = req.body;
 
-    // Validate required fields
     if (!name || !team || !project || !owners?.length || !timeToComplete) {
-      console.log("Validation failed: Missing required fields");
+      console.log("Validation failed:", {
+        name,
+        team,
+        project,
+        owners,
+        timeToComplete,
+      });
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    // Create new task object
     const newTask = new Task({
       name,
       team,
@@ -204,35 +208,22 @@ app.post("/tasks", async (req, res) => {
       tags,
     });
 
-    let savedTask;
-    try {
-      savedTask = await newTask.save();
-      console.log("Task saved successfully:", savedTask);
-    } catch (saveError) {
-      console.log("Error saving task:", saveError);
-      return res.status(500).json({ message: "Error saving task", saveError });
-    }
+    const savedTask = await newTask.save();
+    console.log("Task saved:", savedTask);
 
-    // Populate related fields
-    let populatedTask;
-    try {
-      populatedTask = await Task.findById(savedTask._id)
-        .populate("owners", "name")
-        .populate("team", "name")
-        .populate("project", "name");
+    const populatedTask = await Task.findById(savedTask._id)
+      .populate("owners", "name")
+      .populate("team", "name")
+      .populate("project", "name");
 
-      console.log("Populated Task:", populatedTask);
-    } catch (populateError) {
-      console.log("Error populating task:", populateError);
-      return res
-        .status(500)
-        .json({ message: "Error populating task", populateError });
-    }
-
+    console.log("Populated Task:", populatedTask);
     res.status(201).json(populatedTask);
   } catch (error) {
-    console.log("TASK CREATE ERROR:", error);
-    res.status(500).json({ message: "Task creation failed", error });
+    console.error("TASK CREATE ERROR:", error.message);
+    console.error(error.stack);
+    res
+      .status(500)
+      .json({ message: "Task creation failed", error: error.message });
   }
 });
 
