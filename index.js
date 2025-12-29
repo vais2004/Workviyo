@@ -97,17 +97,20 @@ app.post("/auth/login", async (req, res) => {
 
 //verify token
 const verifyJWT = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader)
-    return res.status(401).json({ message: "No token provided" });
+  const authHeader = req.headers.authorization;
 
-  const token = authHeader;
-  if (!token) {
+  if (!authHeader) {
     return res.status(401).json({ message: "No token provided" });
   }
 
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader;
+
   jwt.verify(token, JWT_SECRET, (error, decoded) => {
-    if (error) return res.status(401).json({ message: "Invalid token" });
+    if (error) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
     req.user = decoded.id;
     next();
   });
@@ -170,8 +173,7 @@ app.delete("/members/:id", async (req, res) => {
 });
 
 // Add Task
-// Add Task
-app.post("/tasks", async (req, res) => {
+app.post("/tasks", verifyJWT, async (req, res) => {
   try {
     console.log("TASK PAYLOAD RECEIVED:", req.body);
 
@@ -228,7 +230,7 @@ app.post("/tasks", async (req, res) => {
 });
 
 // Get Tasks
-app.get("/tasks", async (req, res) => {
+app.get("/tasks", verifyJWT, async (req, res) => {
   try {
     const { team, owners, project, status, tags, prioritySort, dateSort } =
       req.query;
@@ -272,7 +274,7 @@ app.get("/tasks", async (req, res) => {
 });
 
 // Update Task
-app.put("/tasks/:id", async (req, res) => {
+app.put("/tasks/:id", verifyJWT, async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -289,7 +291,7 @@ app.put("/tasks/:id", async (req, res) => {
 });
 
 // Delete Task
-app.delete("/tasks/:id", async (req, res) => {
+app.delete("/tasks/:id", verifyJWT, async (req, res) => {
   try {
     const deletedTask = await Task.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Task deleted successfully", deletedTask });
