@@ -176,41 +176,28 @@ app.delete("/members/:id", async (req, res) => {
 // ADD TASK
 app.post("/tasks", verifyJWT, async (req, res) => {
   try {
-    const {
-      name,
-      team,
-      project,
-      owners,
-      timeToComplete,
-      priority,
-      status,
-      tags,
-    } = req.body;
+    console.log("TASK BODY:", req.body); // DEBUG LINE
 
-    if (!name || !team || !project || !owners?.length || !timeToComplete) {
-      return res.status(400).json({ message: "Required fields missing" });
-    }
-
-    const newTask = await Task.create({
-      name,
-      team, // ✅ let mongoose handle ObjectId
-      project, // ✅
-      owners, // ✅
-      timeToComplete: Number(timeToComplete),
-      priority: priority || "Medium",
-      status: status || "To Do",
-      tags: tags || [],
+    const task = await Task.create({
+      name: req.body.name,
+      project: req.body.project,
+      team: req.body.team,
+      owners: req.body.owners,
+      timeToComplete: Number(req.body.timeToComplete),
+      priority: req.body.priority || "Medium",
+      status: req.body.status || "To Do",
+      tags: req.body.tags || [],
     });
 
-    const populatedTask = await Task.findById(newTask._id)
+    const populatedTask = await Task.findById(task._id)
       .populate("owners", "name")
       .populate("team", "name")
       .populate("project", "name");
 
     res.status(201).json(populatedTask);
   } catch (error) {
-    console.error("TASK CREATE ERROR:", error);
-    res.status(500).json({ message: error.message });
+    console.error("CREATE TASK ERROR:", error);
+    res.status(500).json({ message: "Failed to create task" });
   }
 });
 
