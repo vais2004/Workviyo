@@ -196,9 +196,9 @@ app.post("/tasks", verifyJWT, async (req, res) => {
       project,
       owners,
       timeToComplete,
-      priority,
-      status,
-      tags,
+      priority: priority || "Medium",
+      status: status || "To Do",
+      tags: tags || [],
     });
 
     const savedTask = await newTask.save();
