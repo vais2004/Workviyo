@@ -98,23 +98,26 @@ app.post("/auth/login", async (req, res) => {
 
 //verify token
 const verifyJWT = (req, res, next) => {
+  // ✅ ALLOW PREFLIGHT REQUESTS
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "No token provided" });
   }
 
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.split(" ")[1]
-    : authHeader;
+  const token = authHeader.split(" ")[1];
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded.id;
     next();
-  });
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
 
 //get user with token
