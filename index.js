@@ -185,11 +185,13 @@ app.post("/tasks", verifyJWT, async (req, res) => {
       name: req.body.name,
       project: req.body.project,
       team: req.body.team,
-      owners: req.body.owners,
+      owners: Array.isArray(req.body.owners)
+        ? req.body.owners
+        : [req.body.owners], // ✅ fix here
       timeToComplete: Number(req.body.timeToComplete),
       priority: req.body.priority || "Medium",
       status: req.body.status || "To Do",
-      tags: req.body.tags || [], // ✅ no ObjectId casting
+      tags: req.body.tags || [],
     });
 
     const populatedTask = await Task.findById(task._id)
