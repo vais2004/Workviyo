@@ -107,8 +107,8 @@ const verifyJWT = (req, res, next) => {
     ? authHeader.split(" ")[1]
     : authHeader;
 
-  jwt.verify(token, JWT_SECRET, (error, decoded) => {
-    if (error) {
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
       return res.status(401).json({ message: "Invalid token" });
     }
     req.user = decoded.id;
@@ -172,11 +172,9 @@ app.delete("/members/:id", async (req, res) => {
   }
 });
 
-// Add Task
+// ADD TASK
 app.post("/tasks", verifyJWT, async (req, res) => {
   try {
-    console.log("TASK PAYLOAD RECEIVED:", req.body);
-
     const {
       name,
       team,
@@ -189,13 +187,6 @@ app.post("/tasks", verifyJWT, async (req, res) => {
     } = req.body;
 
     if (!name || !team || !project || !owners?.length || !timeToComplete) {
-      console.log("Validation failed:", {
-        name,
-        team,
-        project,
-        owners,
-        timeToComplete,
-      });
       return res.status(400).json({ message: "Required fields missing" });
     }
 
@@ -211,69 +202,36 @@ app.post("/tasks", verifyJWT, async (req, res) => {
     });
 
     const savedTask = await newTask.save();
-    console.log("Task saved:", savedTask);
 
     const populatedTask = await Task.findById(savedTask._id)
       .populate("owners", "name")
       .populate("team", "name")
       .populate("project", "name");
 
-    console.log("Populated Task:", populatedTask);
     res.status(201).json(populatedTask);
   } catch (error) {
-    console.error("TASK CREATE ERROR:", error.message);
-    console.error(error.stack);
-    res
-      .status(500)
-      .json({ message: "Task creation failed", error: error.message });
+    res.status(500).json({
+      message: "Task creation failed",
+      error: error.message,
+    });
   }
 });
 
-// Get Tasks
+// GET TASKS
 app.get("/tasks", verifyJWT, async (req, res) => {
   try {
-    const { team, owners, project, status, tags, prioritySort, dateSort } =
-      req.query;
-    const filter = {};
-
-    if (owners) filter.owners = { $in: owners.split(",") };
-    if (team) filter.team = team;
-    if (project) filter.project = project;
-    if (status) filter.status = status;
-    if (tags) filter.tags = { $in: tags.split(",") };
-
-    let tasks = await Task.find(filter)
+    const tasks = await Task.find()
       .populate("owners", "name")
       .populate("team", "name")
       .populate("project", "name");
 
-    if (prioritySort) {
-      const order = { Low: 1, Medium: 2, High: 3 };
-      tasks.sort((a, b) =>
-        prioritySort === "Low-High"
-          ? order[a.priority] - order[b.priority]
-          : order[b.priority] - order[a.priority]
-      );
-    }
-
-    if (dateSort) {
-      tasks.sort((a, b) =>
-        dateSort === "Newest-Oldest"
-          ? new Date(b.createdAt) - new Date(a.createdAt)
-          : new Date(a.createdAt) - new Date(b.createdAt)
-      );
-    }
-
     res.status(200).json(tasks);
   } catch (error) {
-    console.log("TASK FETCH ERROR:", error);
-    res
-      .status(500)
-      .json({ message: "Something went wrong fetching tasks", error });
+    res.status(500).json({ message: "Failed to fetch tasks" });
   }
 });
 
-// Update Task
+// UPDATE TASK
 app.put("/tasks/:id", verifyJWT, async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
@@ -285,19 +243,17 @@ app.put("/tasks/:id", verifyJWT, async (req, res) => {
 
     res.status(200).json(updatedTask);
   } catch (error) {
-    console.log("TASK UPDATE ERROR:", error);
-    res.status(500).json({ message: "Failed to update task", error });
+    res.status(500).json({ message: "Failed to update task" });
   }
 });
 
-// Delete Task
+// DELETE TASK
 app.delete("/tasks/:id", verifyJWT, async (req, res) => {
   try {
-    const deletedTask = await Task.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Task deleted successfully", deletedTask });
+    await Task.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Task deleted successfully" });
   } catch (error) {
-    console.log("TASK DELETE ERROR:", error);
-    res.status(500).json({ message: "Failed to delete task", error });
+    res.status(500).json({ message: "Failed to delete task" });
   }
 });
 
