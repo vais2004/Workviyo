@@ -179,7 +179,18 @@ app.delete("/members/:id", async (req, res) => {
 // ADD TASK
 app.post("/tasks", verifyJWT, async (req, res) => {
   try {
-    console.log("TASK BODY:", req.body); // DEBUG LINE
+    console.log("TASK BODY:", req.body);
+
+    let tags = req.body.tags;
+
+    // 🔒 SAFETY: convert string → array if needed
+    if (typeof tags === "string") {
+      try {
+        tags = JSON.parse(tags);
+      } catch (e) {
+        tags = [];
+      }
+    }
 
     const task = await Task.create({
       name: req.body.name,
@@ -189,7 +200,7 @@ app.post("/tasks", verifyJWT, async (req, res) => {
       timeToComplete: Number(req.body.timeToComplete),
       priority: req.body.priority || "Medium",
       status: req.body.status || "To Do",
-      tags: req.body.tags || [],
+      tags: tags || [],
     });
 
     const populatedTask = await Task.findById(task._id)
@@ -200,7 +211,7 @@ app.post("/tasks", verifyJWT, async (req, res) => {
     res.status(201).json(populatedTask);
   } catch (error) {
     console.error("CREATE TASK ERROR:", error);
-    res.status(500).json({ message: "Failed to create task" });
+    res.status(500).json({ message: "Failed to create task", error });
   }
 });
 

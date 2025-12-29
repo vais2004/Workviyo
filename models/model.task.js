@@ -41,6 +41,7 @@ const taskSchema = new mongoose.Schema(
       default: "To Do",
     },
 
+    // ✅ FIXED
     tags: {
       type: [String],
       default: [],
@@ -48,3 +49,5 @@ const taskSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+module.exports = mongoose.model("Task", taskSchema);
