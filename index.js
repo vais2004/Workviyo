@@ -216,6 +216,7 @@ app.get("/tasks", verifyJWT, async (req, res) => {
 
     res.status(200).json(tasks);
   } catch (error) {
+    console.error("GET TASKS ERROR:", error);
     res.status(500).json({ message: "Failed to fetch tasks" });
   }
 });
