@@ -1,4 +1,5 @@
 require("dotenv").config();
+const mongoose = require("mongoose");
 const express = require("express");
 const Task = require("./models/model.task");
 const User = require("./models/model.user");
@@ -192,9 +193,9 @@ app.post("/tasks", verifyJWT, async (req, res) => {
 
     const newTask = await Task.create({
       name,
-      team: new mongoose.Types.ObjectId(team),
-      project: new mongoose.Types.ObjectId(project),
-      owners: owners.map((id) => new mongoose.Types.ObjectId(id)),
+      team, // ✅ let mongoose handle ObjectId
+      project, // ✅
+      owners, // ✅
       timeToComplete: Number(timeToComplete),
       priority: priority || "Medium",
       status: status || "To Do",
@@ -208,7 +209,7 @@ app.post("/tasks", verifyJWT, async (req, res) => {
 
     res.status(201).json(populatedTask);
   } catch (error) {
-    console.error("TASK CREATE ERROR:", error.message);
+    console.error("TASK CREATE ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -230,15 +231,21 @@ app.get("/tasks", verifyJWT, async (req, res) => {
 // UPDATE TASK
 app.put("/tasks/:id", verifyJWT, async (req, res) => {
   try {
-    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    })
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...req.body,
+        timeToComplete: Number(req.body.timeToComplete),
+      },
+      { new: true }
+    )
       .populate("owners", "name")
       .populate("team", "name")
       .populate("project", "name");
 
     res.status(200).json(updatedTask);
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Failed to update task" });
   }
 });
