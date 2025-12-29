@@ -190,30 +190,26 @@ app.post("/tasks", verifyJWT, async (req, res) => {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    const newTask = new Task({
+    const newTask = await Task.create({
       name,
-      team,
-      project,
-      owners,
-      timeToComplete,
+      team: new mongoose.Types.ObjectId(team),
+      project: new mongoose.Types.ObjectId(project),
+      owners: owners.map((id) => new mongoose.Types.ObjectId(id)),
+      timeToComplete: Number(timeToComplete),
       priority: priority || "Medium",
       status: status || "To Do",
       tags: tags || [],
     });
 
-    const savedTask = await newTask.save();
-
-    const populatedTask = await Task.findById(savedTask._id)
+    const populatedTask = await Task.findById(newTask._id)
       .populate("owners", "name")
       .populate("team", "name")
       .populate("project", "name");
 
     res.status(201).json(populatedTask);
   } catch (error) {
-    res.status(500).json({
-      message: "Task creation failed",
-      error: error.message,
-    });
+    console.error("TASK CREATE ERROR:", error.message);
+    res.status(500).json({ message: error.message });
   }
 });
 
