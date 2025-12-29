@@ -41,7 +41,6 @@ const taskSchema = new mongoose.Schema(
       default: "To Do",
     },
 
-    // ✅ FIXED
     tags: {
       type: [String],
       default: [],
