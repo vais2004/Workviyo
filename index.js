@@ -281,18 +281,20 @@ app.post("/teams", async (req, res) => {
 // update team
 app.put("/teams/:id", async (req, res) => {
   try {
-    const { memberId, name } = req.body;
+    const { name, members } = req.body;
 
-    const updatedTeam = await Team.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...(name && { name }),
-        ...(memberId && { $addToSet: { members: memberId } }), // ✅ APPEND
-      },
-      { new: true }
-    ).populate("members");
+    const update = {};
+    if (name) update.name = name;
 
-    res.status(200).json(updatedTeam);
+    if (Array.isArray(members) && members.length > 0) {
+      update.$addToSet = { members: { $each: members } };
+    }
+
+    const team = await Team.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+    }).populate("members");
+
+    res.status(200).json(team);
   } catch (error) {
     res.status(500).json({ message: "Failed to update team", error });
   }
