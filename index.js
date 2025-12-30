@@ -281,24 +281,19 @@ app.post("/teams", async (req, res) => {
 // update team
 app.put("/teams/:id", async (req, res) => {
   try {
-    const { members, name } = req.body;
+    const { memberId, name } = req.body;
 
     const updatedTeam = await Team.findByIdAndUpdate(
       req.params.id,
       {
-        ...(name !== undefined && { name }),
-        ...(members !== undefined && { members }), // ✅ FULL REPLACE
+        ...(name && { name }),
+        ...(memberId && { $addToSet: { members: memberId } }), // ✅ APPEND
       },
       { new: true }
     ).populate("members");
 
-    if (!updatedTeam) {
-      return res.status(404).json({ message: "Team not found" });
-    }
-
     res.status(200).json(updatedTeam);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Failed to update team", error });
   }
 });
