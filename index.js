@@ -286,10 +286,8 @@ app.put("/teams/:id", async (req, res) => {
     const updatedTeam = await Team.findByIdAndUpdate(
       req.params.id,
       {
-        ...(name && { name }),
-        ...(members && {
-          $addToSet: { members: { $each: members } }, // ⭐ KEY FIX
-        }),
+        ...(name !== undefined && { name }),
+        ...(members !== undefined && { members }), // ✅ FULL REPLACE
       },
       { new: true }
     ).populate("members");
