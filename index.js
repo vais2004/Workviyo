@@ -283,16 +283,14 @@ app.put("/teams/:id", async (req, res) => {
   try {
     const { name, members } = req.body;
 
-    const update = {};
-    if (name) update.name = name;
-
-    if (Array.isArray(members) && members.length > 0) {
-      update.$addToSet = { members: { $each: members } };
-    }
-
-    const team = await Team.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-    }).populate("members");
+    const team = await Team.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(name && { name }),
+        ...(Array.isArray(members) && { members }), // ✅ FULL REPLACE
+      },
+      { new: true }
+    ).populate("members");
 
     res.status(200).json(team);
   } catch (error) {
