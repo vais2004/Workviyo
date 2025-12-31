@@ -46,7 +46,6 @@ app.post("/auth/signup", async (req, res) => {
         .json({ message: "Email already exists, please Login" });
     }
 
-    // NO MANUAL HASHING HERE (schema will handle it)
     const newUser = new User(req.body);
     const savedUser = await newUser.save();
 
@@ -60,9 +59,9 @@ app.post("/auth/signup", async (req, res) => {
       token,
     });
 
-    console.log(req.body); //just for debugging
+    //console.log(req.body);
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     res.status(500).json({ message: "Adding user Failed.", error });
   }
 });
@@ -91,14 +90,13 @@ app.post("/auth/login", async (req, res) => {
       .status(200)
       .json({ message: "Login Successful", token, user: existingUser });
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     res.status(500).json({ message: "User Login Failed.", error });
   }
 });
 
 //verify token
 const verifyJWT = (req, res, next) => {
-  // ✅ ALLOW PREFLIGHT REQUESTS
   if (req.method === "OPTIONS") {
     return next();
   }
@@ -131,7 +129,7 @@ app.get("/users", async (req, res) => {
     const users = await User.find();
     res.send(users);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json("Internal server error");
   }
 });
@@ -176,10 +174,10 @@ app.delete("/members/:id", async (req, res) => {
   }
 });
 
-// ADD TASK
+// add task
 app.post("/tasks", verifyJWT, async (req, res) => {
   try {
-    console.log("TASK BODY:", req.body);
+    //console.log("TASK BODY:", req.body);
 
     const task = await Task.create({
       name: req.body.name,
@@ -187,7 +185,7 @@ app.post("/tasks", verifyJWT, async (req, res) => {
       team: req.body.team,
       owners: Array.isArray(req.body.owners)
         ? req.body.owners
-        : [req.body.owners], // ✅ fix here
+        : [req.body.owners],
       timeToComplete: Number(req.body.timeToComplete),
       priority: req.body.priority || "Medium",
       status: req.body.status || "To Do",
@@ -201,12 +199,12 @@ app.post("/tasks", verifyJWT, async (req, res) => {
 
     res.status(201).json(populatedTask);
   } catch (error) {
-    console.error("CREATE TASK ERROR:", error);
+    // console.error("CREATE TASK ERROR:", error);
     res.status(500).json({ message: "Failed to create task" });
   }
 });
 
-// GET TASKS
+// get tasks
 app.get("/tasks", verifyJWT, async (req, res) => {
   try {
     const tasks = await Task.find()
@@ -216,12 +214,12 @@ app.get("/tasks", verifyJWT, async (req, res) => {
 
     res.status(200).json(tasks);
   } catch (error) {
-    console.error("GET TASKS ERROR:", error);
+    // console.error("GET TASKS ERROR:", error);
     res.status(500).json({ message: "Failed to fetch tasks" });
   }
 });
 
-// UPDATE TASK
+// update task
 app.put("/tasks/:id", verifyJWT, async (req, res) => {
   try {
     const updatedTask = await Task.findByIdAndUpdate(
@@ -238,12 +236,12 @@ app.put("/tasks/:id", verifyJWT, async (req, res) => {
 
     res.status(200).json(updatedTask);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: "Failed to update task" });
   }
 });
 
-// DELETE TASK
+// delete task
 app.delete("/tasks/:id", verifyJWT, async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
@@ -273,7 +271,7 @@ app.post("/teams", async (req, res) => {
       team: populatedTeam,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: "Team creation failed", error });
   }
 });
@@ -303,7 +301,7 @@ app.delete("/teams/:id", async (req, res) => {
     const deletedTeam = await Team.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Team deleted successfully", deletedTeam });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: "Failed to delete team." });
   }
 });
@@ -314,7 +312,7 @@ app.get("/teams", async (req, res) => {
     const teams = await Team.find().populate("members");
     res.send(teams);
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     res.status(500).json("Internal server error");
   }
 });
@@ -339,7 +337,7 @@ app.post("/projects", async (req, res) => {
       projects,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: "project creation failed" });
   }
 });
@@ -357,7 +355,7 @@ app.get("/projects", async (req, res) => {
     const projects = await Project.find(filter);
     res.send(projects);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json("Internal server error");
   }
 });
@@ -371,7 +369,7 @@ app.put("/projects/:id", async (req, res) => {
     const projects = await Project.find();
     res.status(200).json({ message: "Project updated", projects });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: "project update failed" });
   }
 });
@@ -383,7 +381,7 @@ app.delete("/projects/:id", async (req, res) => {
     const projects = await Project.find();
     res.status(200).json({ message: "Project deleted", projects });
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     res.status(500).json({ message: "project deletion failed" });
   }
 });
@@ -414,7 +412,7 @@ app.get("/report/last-week", async (req, res) => {
 
     res.send(tasks);
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     res.status(500).json({ message: "error while fetching report last-week" });
   }
 });
@@ -430,7 +428,7 @@ app.get("/report/pending", async (req, res) => {
 
     res.send(simplifiedTasks);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: "error while fetching pending reports" });
   }
 });
@@ -490,7 +488,7 @@ app.get("/report/closed-tasks", async (req, res) => {
       byProject,
     });
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     res
       .status(500)
       .json({ message: "error while fetching report of closed tasks" });
