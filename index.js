@@ -28,6 +28,25 @@ app.get("/", async (req, res) => {
   res.send("Workviyo backend is running successfully");
 });
 
+app.use((err, req, res, next) => {
+  console.error(err);
+  res
+    .status(500)
+    .json({ message: "Internal Server Error", error: err.message });
+});
+
+app.get("/test-db", async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "DB connection failed", error: error.message });
+  }
+});
+
 //signup
 app.post("/auth/signup", async (req, res) => {
   try {
