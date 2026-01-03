@@ -18,10 +18,8 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
 };
-
 app.use(cors(corsOptions));
 app.use(express.json());
-
 initializeDatabase();
 
 const JWT_SECRET = process.env.JWT_SECRETKEY;
