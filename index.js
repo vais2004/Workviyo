@@ -14,7 +14,7 @@ const jwt = require("jsonwebtoken");
 const app = express();
 
 const corsOptions = {
-  origin: "https://workviyo-frontend.vercel.app",
+  origin: "*",
   credentials: true,
   optionsSuccessStatus: 200,
 };
