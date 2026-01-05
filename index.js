@@ -136,7 +136,7 @@ app.post("/auth/login", async (req, res) => {
 const verifyJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "No token provided" });
   }
 
@@ -146,14 +146,20 @@ const verifyJWT = (req, res, next) => {
     if (error) {
       return res.status(401).json({ message: "Invalid token" });
     }
-    req.user = decoded.existingUser;
+
+    req.userId = decoded.id; // THIS EXISTS
     next();
   });
 };
 
 //get user with token
-app.get("/auth/me", verifyJWT, (req, res) => {
-  return res.status(200).json(req.user);
+app.get("/auth/me", verifyJWT, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
 });
 
 //get users
