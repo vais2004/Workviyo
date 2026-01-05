@@ -21,29 +21,168 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-app.use(async (req, res, next) => {
+/* ------------------ DB CONNECT (ONCE ONLY) ------------------ */
+initializeDatabase();
+
+/* ------------------ CONSTANTS ------------------ */
+const JWT_SECRET = process.env.JWT_SECRETKEY;
+
+/* ------------------ ROUTES ------------------ */
+
+app.get("/", (req, res) => {
+  res.send("Workviyo backend running");
+});
+
+/* ---------- SIGNUP ---------- */
+app.post("/auth/signup", async (req, res) => {
   try {
-    await initializeDatabase(); // ensures DB is connected before handling request
-    next();
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const user = new User({ name, email, password });
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "24h" });
+
+    res.status(201).json({
+      message: "Signup successful",
+      token,
+      user,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Database connection failed", error: err });
+    res.status(500).json({ message: "Signup failed" });
   }
 });
 
-// initializeDatabase();
+/* ---------- LOGIN ---------- */
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-// mongoose.connection.on("connected", () => console.log("✅ DB connected!"));
-// mongoose.connection.on("error", (err) =>
-//   console.error("❌ DB connection error:", err)
-// );
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-const JWT_SECRET = process.env.JWT_SECRETKEY;
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-app.get("/", async (req, res) => {
-  res.send("Workviyo backend is running successfully");
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "24h" });
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Login failed" });
+  }
 });
 
-//signup
+/* ---------- AUTH MIDDLEWARE ---------- */
+const verifyJWT = (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  try {
+    const token = auth.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.id;
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+/* ---------- CURRENT USER ---------- */
+app.get("/auth/me", verifyJWT, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    res.json(user);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+});
+
+/* ---------- ALL USERS ---------- */
+app.get("/users", async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
+
+// app.use(async (req, res, next) => {
+//   try {
+//     await initializeDatabase(); // ensures DB is connected before handling request
+//     next();
+//   } catch (err) {
+//     res.status(500).json({ message: "Database connection failed", error: err });
+//   }
+// });
+
+// // initializeDatabase();
+
+// // mongoose.connection.on("connected", () => console.log("✅ DB connected!"));
+// // mongoose.connection.on("error", (err) =>
+// //   console.error("❌ DB connection error:", err)
+// // );
+
+// const JWT_SECRET = process.env.JWT_SECRETKEY;
+
+// app.get("/", async (req, res) => {
+//   res.send("Workviyo backend is running successfully");
+// });
+
+// //signup
+// // app.post("/auth/signup", async (req, res) => {
+// //   try {
+// //     const { name, email, password } = req.body;
+
+// //     if (!name || !email || !password) {
+// //       return res.status(400).json({ message: "All fields are required" });
+// //     }
+
+// //     const existingUser = await User.findOne({ email });
+// //     if (existingUser) {
+// //       return res
+// //         .status(400)
+// //         .json({ message: "Email already exists, please Login" });
+// //     }
+
+// //     const newUser = new User(req.body);
+// //     const savedUser = await newUser.save();
+
+// //     const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
+// //       expiresIn: "24h",
+// //     });
+
+// //     res.status(200).json({
+// //       message: "User added successfully.",
+// //       user: savedUser,
+// //       token,
+// //     });
+
+// //     //console.log(req.body);
+// //   } catch (error) {
+// //     //console.log(error);
+// //     res.status(500).json({ message: "Adding user Failed.", error });
+// //   }
+// // });
 // app.post("/auth/signup", async (req, res) => {
 //   try {
 //     const { name, email, password } = req.body;
@@ -59,7 +198,15 @@ app.get("/", async (req, res) => {
 //         .json({ message: "Email already exists, please Login" });
 //     }
 
-//     const newUser = new User(req.body);
+//     // HASH PASSWORD
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const newUser = new User({
+//       name,
+//       email,
+//       password: hashedPassword,
+//     });
+
 //     const savedUser = await newUser.save();
 
 //     const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
@@ -71,145 +218,103 @@ app.get("/", async (req, res) => {
 //       user: savedUser,
 //       token,
 //     });
-
-//     //console.log(req.body);
 //   } catch (error) {
-//     //console.log(error);
 //     res.status(500).json({ message: "Adding user Failed.", error });
 //   }
 // });
-app.post("/auth/signup", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "Email already exists, please Login" });
-    }
-
-    // HASH PASSWORD
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-    });
-
-    const savedUser = await newUser.save();
-
-    const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
-      expiresIn: "24h",
-    });
-
-    res.status(200).json({
-      message: "User added successfully.",
-      user: savedUser,
-      token,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Adding user Failed.", error });
-  }
-});
-
-// //login
-app.post("/auth/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const existingUser = await User.findOne({ email }).select("+password");
-    if (!existingUser)
-      return res.status(400).json({ message: "Invalid email." });
-
-    const isMatch = await bcrypt.compare(password, existingUser.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Incorrect password." });
-
-    const token = jwt.sign({ id: existingUser._id }, JWT_SECRET, {
-      expiresIn: "24h",
-    });
-    res
-      .status(200)
-      .json({ message: "Login Successful", token, user: existingUser });
-  } catch (error) {
-    console.error("LOGIN ERROR:", error); // 🔥 Add this
-    res.status(500).json({ message: "User Login Failed.", error });
-  }
-});
-
+// // //login
 // app.post("/auth/login", async (req, res) => {
 //   try {
 //     const { email, password } = req.body;
-
 //     const existingUser = await User.findOne({ email }).select("+password");
-
-//     if (!existingUser) {
+//     if (!existingUser)
 //       return res.status(400).json({ message: "Invalid email." });
-//     }
 
 //     const isMatch = await bcrypt.compare(password, existingUser.password);
-
-//     if (!isMatch) {
+//     if (!isMatch)
 //       return res.status(401).json({ message: "Incorrect password." });
-//     }
+
 //     const token = jwt.sign({ id: existingUser._id }, JWT_SECRET, {
 //       expiresIn: "24h",
 //     });
-
 //     res
 //       .status(200)
 //       .json({ message: "Login Successful", token, user: existingUser });
 //   } catch (error) {
-//     //console.log(error);
+//     console.error("LOGIN ERROR:", error); // 🔥 Add this
 //     res.status(500).json({ message: "User Login Failed.", error });
 //   }
 // });
 
-//verify token
-const verifyJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+// // app.post("/auth/login", async (req, res) => {
+// //   try {
+// //     const { email, password } = req.body;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
+// //     const existingUser = await User.findOne({ email }).select("+password");
 
-  const token = authHeader.split(" ")[1];
+// //     if (!existingUser) {
+// //       return res.status(400).json({ message: "Invalid email." });
+// //     }
 
-  jwt.verify(token, JWT_SECRET, (error, decoded) => {
-    if (error) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
+// //     const isMatch = await bcrypt.compare(password, existingUser.password);
 
-    req.userId = decoded.id; // THIS EXISTS
-    next();
-  });
-};
+// //     if (!isMatch) {
+// //       return res.status(401).json({ message: "Incorrect password." });
+// //     }
+// //     const token = jwt.sign({ id: existingUser._id }, JWT_SECRET, {
+// //       expiresIn: "24h",
+// //     });
 
-//get user with token
-app.get("/auth/me", verifyJWT, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select("-password");
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch user" });
-  }
-});
+// //     res
+// //       .status(200)
+// //       .json({ message: "Login Successful", token, user: existingUser });
+// //   } catch (error) {
+// //     //console.log(error);
+// //     res.status(500).json({ message: "User Login Failed.", error });
+// //   }
+// // });
 
-//get users
-app.get("/users", async (req, res) => {
-  try {
-    const users = await User.find();
-    res.send(users);
-  } catch (error) {
-    // console.log(error);
-    res.status(500).json("Internal server error");
-  }
-});
+// //verify token
+// const verifyJWT = (req, res, next) => {
+//   const authHeader = req.headers.authorization;
+
+//   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+//     return res.status(401).json({ message: "No token provided" });
+//   }
+
+//   const token = authHeader.split(" ")[1];
+
+//   jwt.verify(token, JWT_SECRET, (error, decoded) => {
+//     if (error) {
+//       return res.status(401).json({ message: "Invalid token" });
+//     }
+
+//     req.userId = decoded.id; // THIS EXISTS
+//     next();
+//   });
+// };
+
+// //get user with token
+// app.get("/auth/me", verifyJWT, async (req, res) => {
+//   try {
+//     const user = await User.findById(req.userId).select("-password");
+//     res.status(200).json(user);
+//   } catch (error) {
+//     res.status(500).json({ message: "Failed to fetch user" });
+//   }
+// });
+
+// //get users
+// app.get("/users", async (req, res) => {
+//   try {
+//     const users = await User.find();
+//     res.send(users);
+//   } catch (error) {
+//     // console.log(error);
+//     res.status(500).json("Internal server error");
+//   }
+// });
 
 //get members
 app.get("/members", verifyJWT, async (req, res) => {
