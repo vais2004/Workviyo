@@ -1,17 +1,31 @@
+// db.connect.js
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const mongoUri = process.env.MONGODB; // your Atlas URI
+const mongoUri = process.env.MONGODB;
+
+let isConnected = false; // track if DB is already connected
 
 const initializeDatabase = async () => {
+  if (isConnected) {
+    // Already connected, reuse
+    console.log("✅ Already connected to DB");
+    return;
+  }
+
   try {
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000, // faster fail if server is down
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // 30s is safer for free tier
     });
+
+    isConnected = true;
     console.log("✅ Connected to Database");
   } catch (err) {
     console.error("❌ DB connection error:", err);
-    process.exit(1); // stop app if DB is down
+    // Don't exit Vercel serverless function; just throw
+    throw err;
   }
 };
 

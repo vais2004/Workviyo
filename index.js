@@ -20,12 +20,22 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
-initializeDatabase();
 
-mongoose.connection.on("connected", () => console.log("✅ DB connected!"));
-mongoose.connection.on("error", (err) =>
-  console.error("❌ DB connection error:", err)
-);
+app.use(async (req, res, next) => {
+  try {
+    await initializeDatabase(); // ensures DB is connected before handling request
+    next();
+  } catch (err) {
+    res.status(500).json({ message: "Database connection failed", error: err });
+  }
+});
+
+// initializeDatabase();
+
+// mongoose.connection.on("connected", () => console.log("✅ DB connected!"));
+// mongoose.connection.on("error", (err) =>
+//   console.error("❌ DB connection error:", err)
+// );
 
 const JWT_SECRET = process.env.JWT_SECRETKEY;
 
