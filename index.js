@@ -118,34 +118,57 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
-//login
+// //login
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
     const existingUser = await User.findOne({ email }).select("+password");
-
-    if (!existingUser) {
+    if (!existingUser)
       return res.status(400).json({ message: "Invalid email." });
-    }
 
     const isMatch = await bcrypt.compare(password, existingUser.password);
-
-    if (!isMatch) {
+    if (!isMatch)
       return res.status(401).json({ message: "Incorrect password." });
-    }
+
     const token = jwt.sign({ id: existingUser._id }, JWT_SECRET, {
       expiresIn: "24h",
     });
-
     res
       .status(200)
       .json({ message: "Login Successful", token, user: existingUser });
   } catch (error) {
-    //console.log(error);
+    console.error("LOGIN ERROR:", error); // 🔥 Add this
     res.status(500).json({ message: "User Login Failed.", error });
   }
 });
+
+// app.post("/auth/login", async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const existingUser = await User.findOne({ email }).select("+password");
+
+//     if (!existingUser) {
+//       return res.status(400).json({ message: "Invalid email." });
+//     }
+
+//     const isMatch = await bcrypt.compare(password, existingUser.password);
+
+//     if (!isMatch) {
+//       return res.status(401).json({ message: "Incorrect password." });
+//     }
+//     const token = jwt.sign({ id: existingUser._id }, JWT_SECRET, {
+//       expiresIn: "24h",
+//     });
+
+//     res
+//       .status(200)
+//       .json({ message: "Login Successful", token, user: existingUser });
+//   } catch (error) {
+//     //console.log(error);
+//     res.status(500).json({ message: "User Login Failed.", error });
+//   }
+// });
 
 //verify token
 const verifyJWT = (req, res, next) => {
