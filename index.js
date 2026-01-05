@@ -78,7 +78,7 @@ app.post("/auth/signup", async (req, res) => {
         .json({ message: "Email already exists, please Login" });
     }
 
-    // ✅ HASH PASSWORD
+    // HASH PASSWORD
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -134,25 +134,21 @@ app.post("/auth/login", async (req, res) => {
 
 //verify token
 const verifyJWT = (req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return next();
-  }
-
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!authHeader) {
     return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded.id;
+  jwt.verify(token, JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    req.user = decoded.existingUser;
     next();
-  } catch (error) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
+  });
 };
 
 //get user with token
@@ -172,7 +168,7 @@ app.get("/users", async (req, res) => {
 });
 
 //get members
-app.get("/members", async (req, res) => {
+app.get("/members", verifyJWT, async (req, res) => {
   try {
     const members = await Member.find();
     return res.status(200).json(members);
@@ -344,7 +340,7 @@ app.delete("/teams/:id", async (req, res) => {
 });
 
 //get team
-app.get("/teams", async (req, res) => {
+app.get("/teams", verifyJWT, async (req, res) => {
   try {
     const teams = await Team.find().populate("members");
     res.send(teams);
@@ -380,7 +376,7 @@ app.post("/projects", async (req, res) => {
 });
 
 //get project
-app.get("/projects", async (req, res) => {
+app.get("/projects", verifyJWT, async (req, res) => {
   const { name } = req.query;
   const filter = {};
 
