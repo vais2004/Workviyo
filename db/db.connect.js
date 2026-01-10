@@ -1,15 +1,13 @@
-// db.connect.js
 const mongoose = require("mongoose");
 require("dotenv").config();
 
 const mongoUri = process.env.MONGODB;
 
-let isConnected = false; // track if DB is already connected
+let isConnected = false;
 
 const initializeDatabase = async () => {
   if (isConnected) {
-    // Already connected, reuse
-    console.log("✅ Already connected to DB");
+    console.log("Already connected to DB");
     return;
   }
 
@@ -17,14 +15,14 @@ const initializeDatabase = async () => {
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000, // 30s is safer for free tier
+      serverSelectionTimeoutMS: 30000,
     });
 
     isConnected = true;
-    console.log("✅ Connected to Database");
+    console.log("Connected to Database");
   } catch (err) {
-    console.error("❌ DB connection error:", err);
-    // Don't exit Vercel serverless function; just throw
+    console.error("DB connection error:", err);
+
     throw err;
   }
 };
